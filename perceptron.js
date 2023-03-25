@@ -11,7 +11,7 @@ class Normalization {
 	}
 
 	start(x) {
-		return ((x - this.xMin)*(this.d2 - this.d1)) / (this.xMax - this.xMin) + this.d1;
+		return ((x - this.xMin) * (this.d2 - this.d1)) / (this.xMax - this.xMin) + this.d1;
 	}
 }
 
@@ -62,7 +62,7 @@ class Brain {
 		var weights = [];
 
 		// создаем нужное количество весов
-		for (var w = 0; w < inputsCount; w++){
+		for (var w = 0; w < inputsCount; w++) {
 			weights.push(Math.random());
 		}
 
@@ -90,7 +90,9 @@ class Brain {
 		actualLayer = [];
 	}
 
-	train(inputs, outputs, learning_rate, epochs) {
+	train(data, learning_rate, epochs) {
+		this.data = data
+		var [inputs, outputs] = this.prepareData(data)
 
 		// Errors 
 		if (inputs.length == 1) {
@@ -101,7 +103,6 @@ class Brain {
 		// Normalization on / off
 		if (this.normalizationInputs == true) {
 			var inputs = this.normalization_train(inputs, 0, 1);
-			console.log(inputs)
 		}
 
 		// Epochs
@@ -133,8 +134,8 @@ class Brain {
 						if (layer == this.neurons.length - 1) {
 							error = actual_out - train_example_outputs[i];
 						} else {
-							for (var layer_neurons = 0; layer_neurons < this.neurons[layer+1].length; layer_neurons++) {
-								error += this.neurons[layer+1][layer_neurons].weights[i] * weight_delta_arr[layer+1][layer_neurons];
+							for (var layer_neurons = 0; layer_neurons < this.neurons[layer + 1].length; layer_neurons++) {
+								error += this.neurons[layer + 1][layer_neurons].weights[i] * weight_delta_arr[layer + 1][layer_neurons];
 							}
 						}
 						error_arr[layer][i] = error;
@@ -157,7 +158,7 @@ class Brain {
 				}
 			}
 
-		epochs --
+			epochs--
 		}
 	}
 
@@ -169,13 +170,12 @@ class Brain {
 		var min;
 		var x;
 
-		for (var i = 0; i < func.transponse_inputs.length; i++) {
+		for (var i = 0; i < transponse_inputs.length; i++) {
 			max = Math.max.apply(null, transponse_inputs[i]);
 			min = Math.min.apply(null, transponse_inputs[i])
 			this.arrange_inputs[i] = new Normalization(min, max, d1, d2);
 		}
 
-		console.log(this.arrange_inputs);
 
 		for (var i = 0; i < transponse_inputs.length; i++) {
 			normalized_inputs.push([]);
@@ -183,7 +183,7 @@ class Brain {
 				x = transponse_inputs[i][value_count];
 				min = this.arrange_inputs[i].xMin;
 				max = this.arrange_inputs[i].xMax;
-				normalized_inputs[i][value_count] = ((x - min)*(d2 - d1)) / (max - min) + d1;
+				normalized_inputs[i][value_count] = ((x - min) * (d2 - d1)) / (max - min) + d1;
 			}
 		}
 		return func.transponse(normalized_inputs);
@@ -206,24 +206,45 @@ class Brain {
 				max = this.arrange_inputs[i].xMax;
 				d1 = this.arrange_inputs[i].d1;
 				d2 = this.arrange_inputs[i].d2;
-				normalized_inputs[i][value_count] = ((x - min)*(d2 - d1)) / (max - min) + d1;
+				normalized_inputs[i][value_count] = ((x - min) * (d2 - d1)) / (max - min) + d1;
 			}
 		}
 		return func.transponse(normalized_inputs);
 	}
 
 	predict(inputs) {
+		var input_data
 		// Normaliztion on / off
 		if (this.normalizationInputs == true) {
-			var inputs = this.normalization([inputs]);
+			input_data = this.normalization([inputs])[0];
+		} else {
+			input_data = inputs[0]
 		}
-		var result = this.feedForward(inputs[0])
-		return result;
+		var result = this.feedForward(input_data);
+		var output = func.stdNorm(result);
+		var max_value = Math.max.apply(null, output);
+		console.log(result)
+		return `Input: ${inputs}\nPrediction: ${Object.keys(this.data)[output.findIndex(element => element == max_value)]} (${(max_value * 100).toFixed(0)}%)`;
+	}
+
+	prepareData(obj) {
+		const count = Object.keys(obj).length;
+		let inputs = [];
+		let outputs = [];
+		for (var key in obj) {
+			for (var i = 0; i < obj[key].length; i++) {
+				inputs.push(obj[key][i]);
+				var arr = new Array(count).fill(0, 0, count)
+				arr[Object.keys(obj).indexOf(key)] = 1
+				outputs.push(arr)
+			}
+		}
+		return [inputs, outputs];
 	}
 }
 
 module.exports = {
-  Normalization: Normalization,
-  Neuron: Neuron,
-  Brain: Brain,
+	Normalization: Normalization,
+	Neuron: Neuron,
+	Brain: Brain,
 }
